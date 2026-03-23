@@ -1,0 +1,36 @@
+[workspace.package]
+license = "MIT-0"
+authors = ["Kollectyve"]
+homepage = "https://github.com/kollectyve-network"
+repository = "https://github.com/kollectyve-network/kumulus.git"
+edition = "2021"
+
+[workspace]
+members = [
+    "node",
+    "pallets/template",
+    "runtime",
+]
+resolver = "2"
+
+[workspace.dependencies]
+kollectyve-runtime = { path = "./runtime", default-features = false }
+pallet-template = { path = "./pallets/template", default-features = false }
+clap = { version = "4.5.13" }
+futures = { version = "0.3.31" }
+jsonrpsee = { version = "0.24.3" }
+polkadot-sdk = { version = "2503.0.1", default-features = false }
+codec = { version = "3.7.4", default-features = false, package = "parity-scale-codec" }
+scale-info = { version = "2.11.6", default-features = false }
+serde_json = { version = "1.0.132", default-features = false }
+substrate-wasm-builder = { version = "26.0.1", default-features = false }
+frame = { version = "0.9.1", default-features = false, package = "polkadot-sdk-frame" }
+
+[profile.release]
+opt-level = 3
+panic = "unwind"
+
+[profile.production]
+codegen-units = 1
+inherits = "release"
+lto = true

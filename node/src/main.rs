@@ -1,0 +1,15 @@
+//! Kollectyve Node CLI library.
+#![warn(missing_docs)]
+
+use polkadot_sdk::*;
+
+mod benchmarking;
+mod chain_spec;
+mod cli;
+mod command;
+mod rpc;
+mod service;
+
+fn main() -> sc_cli::Result<()> {
+	command::run()
+}

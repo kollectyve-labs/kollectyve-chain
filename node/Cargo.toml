@@ -1,0 +1,68 @@
+[package]
+name = "kollectyve-node"
+description = "Kollectyve network node built with Substrate."
+version = "0.1.0"
+license = "Unlicense"
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+edition.workspace = true
+publish = false
+
+build = "build.rs"
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[dependencies]
+clap = { features = ["derive"], workspace = true }
+futures = { features = ["thread-pool"], workspace = true }
+jsonrpsee = { features = ["server"], workspace = true }
+kollectyve-runtime.workspace = true
+polkadot-sdk = { workspace = true, features = [
+    "frame-benchmarking-cli",
+    "frame-metadata-hash-extension",
+    "frame-system",
+    "pallet-transaction-payment",
+    "sc-basic-authorship",
+    "sc-cli",
+    "sc-client-api",
+    "sc-consensus",
+    "sc-consensus-aura",
+    "sc-consensus-grandpa",
+    "sc-executor",
+    "sc-network",
+    "sc-offchain",
+    "sc-service",
+    "sc-telemetry",
+    "sc-transaction-pool",
+    "sc-transaction-pool-api",
+    "sp-api",
+    "sp-block-builder",
+    "sp-blockchain",
+    "sp-consensus-aura",
+    "sp-core",
+    "sp-genesis-builder",
+    "sp-inherents",
+    "sp-io",
+    "sp-keyring",
+    "sp-runtime",
+    "sp-timestamp",
+    "substrate-frame-rpc-system",
+    "pallet-transaction-payment-rpc",
+], default-features = true }
+
+[build-dependencies]
+polkadot-sdk = { workspace = true, features = ["substrate-build-script-utils"], default-features = true }
+
+[features]
+default = ["std"]
+std = ["kollectyve-runtime/std", "polkadot-sdk/std"]
+runtime-benchmarks = [
+	"kollectyve-runtime/runtime-benchmarks",
+	"polkadot-sdk/runtime-benchmarks",
+]
+try-runtime = [
+	"kollectyve-runtime/try-runtime",
+	"polkadot-sdk/try-runtime",
+]
