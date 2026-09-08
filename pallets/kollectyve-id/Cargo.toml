@@ -1,6 +1,6 @@
 [package]
-name = "pallet-template"
-description = "FRAME pallet template for defining custom runtime logic."
+name = "pallet-kollectyve-id"
+description = "Stable on-chain identity anchor for Kollectyve account abstraction."
 version = "0.1.0"
 license = "Unlicense"
 authors.workspace = true
@@ -16,6 +16,7 @@ targets = ["x86_64-unknown-linux-gnu"]
 codec = { features = ["derive"], workspace = true }
 frame = { workspace = true, features = ["experimental", "runtime"], default-features = false }
 scale-info = { features = ["derive"], workspace = true }
+kollectyve-primitives = { workspace = true }
 
 [dev-dependencies]
 polkadot-sdk = { workspace = true, features = ["sp-core", "sp-io", "sp-runtime"], default-features = true }
@@ -25,11 +26,14 @@ default = ["std"]
 std = [
 	"codec/std",
 	"frame/std",
+	"kollectyve-primitives/std",
 	"scale-info/std",
 ]
 runtime-benchmarks = [
 	"frame/runtime-benchmarks",
+	"kollectyve-primitives/runtime-benchmarks",
 ]
 try-runtime = [
 	"frame/try-runtime",
+	"kollectyve-primitives/try-runtime",
 ]

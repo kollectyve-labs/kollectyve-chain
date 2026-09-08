@@ -1,0 +1,42 @@
+[package]
+name = "pallet-kumulus"
+description = "Kumulus provider registry — identity-keyed records."
+version = "0.1.0"
+license = "Unlicense"
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+edition.workspace = true
+publish = false
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[dependencies]
+codec = { features = ["derive"], workspace = true }
+frame = { workspace = true, features = ["experimental", "runtime"], default-features = false }
+scale-info = { features = ["derive"], workspace = true }
+kollectyve-primitives = { workspace = true }
+
+[dev-dependencies]
+polkadot-sdk = { workspace = true, features = ["sp-core", "sp-io", "sp-runtime"], default-features = true }
+# The identity anchor is only needed to wire a real `IdentityLookup` into the test mock.
+pallet-kollectyve-id = { workspace = true, default-features = true }
+
+[features]
+default = ["std"]
+std = [
+	"codec/std",
+	"frame/std",
+	"kollectyve-primitives/std",
+	"scale-info/std",
+]
+runtime-benchmarks = [
+	"frame/runtime-benchmarks",
+	"kollectyve-primitives/runtime-benchmarks",
+	"pallet-kollectyve-id/runtime-benchmarks",
+]
+try-runtime = [
+	"frame/try-runtime",
+	"kollectyve-primitives/try-runtime",
+]
