@@ -65,7 +65,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: alloc::borrow::Cow::Borrowed("kollectyve-runtime"),
 	impl_name: alloc::borrow::Cow::Borrowed("kollectyve-runtime"),
 	authoring_version: 1,
-	spec_version: 101,
+	spec_version: 103,
 	impl_version: 1,
 	apis: apis::RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -135,6 +135,7 @@ pub type BlockId = generic::BlockId<Block>;
 
 /// The `TransactionExtension` to the basic transaction logic.
 pub type TxExtension = (
+	frame_system::AuthorizeCall<Runtime>,
 	frame_system::CheckNonZeroSender<Runtime>,
 	frame_system::CheckSpecVersion<Runtime>,
 	frame_system::CheckTxVersion<Runtime>,
@@ -144,6 +145,10 @@ pub type TxExtension = (
 	frame_system::CheckWeight<Runtime>,
 	pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
 	frame_metadata_hash_extension::CheckMetadataHash<Runtime>,
+	// Applies the Ethereum-derived origin. Must come after every extension that relies on
+	// a signed origin, and before `WeightReclaim`.
+	pallet_revive::evm::tx_extension::SetOrigin<Runtime>,
+	// Reclaims unused weight via post-dispatch info, so it has to stay last.
 	frame_system::WeightReclaim<Runtime>,
 );
 
@@ -153,10 +158,12 @@ pub struct EthExtraImpl;
 
 impl pallet_revive::evm::runtime::EthExtra for EthExtraImpl {
 	type Config = Runtime;
-	type Extension = TxExtension;
+	type ExtensionV0 = TxExtension;
+	type ExtensionOtherVersions = sp_runtime::traits::InvalidVersion;
 
-	fn get_eth_extension(nonce: Nonce, tip: Balance) -> Self::Extension {
+	fn get_eth_extension(nonce: Nonce, tip: Balance) -> Self::ExtensionV0 {
 		(
+			frame_system::AuthorizeCall::<Runtime>::new(),
 			frame_system::CheckNonZeroSender::<Runtime>::new(),
 			frame_system::CheckSpecVersion::<Runtime>::new(),
 			frame_system::CheckTxVersion::<Runtime>::new(),
@@ -166,6 +173,7 @@ impl pallet_revive::evm::runtime::EthExtra for EthExtraImpl {
 			frame_system::CheckWeight::<Runtime>::new(),
 			pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(tip),
 			frame_metadata_hash_extension::CheckMetadataHash::<Runtime>::new(false),
+			pallet_revive::evm::tx_extension::SetOrigin::<Runtime>::new_from_eth_transaction(),
 			frame_system::WeightReclaim::<Runtime>::new(),
 		)
 	}
@@ -178,23 +186,20 @@ pub type UncheckedExtrinsic =
 /// The payload being signed in transactions.
 pub type SignedPayload = generic::SignedPayload<RuntimeCall, TxExtension>;
 
-/// All migrations of the runtime, aside from the ones declared in the pallets.
-///
-/// This can be a tuple of types, each implementing `OnRuntimeUpgrade`.
-#[allow(unused_parens)]
-type Migrations = ();
-
 /// Executive: handles dispatch to the various modules.
+///
+/// Single-block migrations are declared via `frame_system::Config::SingleBlockMigrations`
+/// (see `configs::SingleBlockMigrations`) rather than as a parameter here.
 pub type Executive = frame_executive::Executive<
 	Runtime,
 	Block,
 	frame_system::ChainContext<Runtime>,
 	Runtime,
 	AllPalletsWithSystem,
-	Migrations,
 >;
 
-// Create the runtime by composing the FRAME pallets that were previously configured.
+// Indices 7 and 12 are retired and deliberately left as gaps, so the surviving pallets keep the
+// call encoding they already had. Do not reuse them.
 #[frame_support::runtime]
 mod runtime {
 	#[runtime::runtime]
@@ -233,8 +238,17 @@ mod runtime {
 	#[runtime::pallet_index(6)]
 	pub type Sudo = pallet_sudo;
 
-	#[runtime::pallet_index(7)]
-	pub type Template = pallet_template;
+	#[runtime::pallet_index(8)]
+	pub type KollectyveId = pallet_kollectyve_id;
+
+	#[runtime::pallet_index(9)]
+	pub type Kumulus = pallet_kumulus;
+
+	#[runtime::pallet_index(10)]
+	pub type Multisig = pallet_multisig;
+
+	#[runtime::pallet_index(11)]
+	pub type KollectyvePolicy = pallet_kollectyve_policy;
 
 	#[runtime::pallet_index(60)]
 	pub type Revive = pallet_revive;

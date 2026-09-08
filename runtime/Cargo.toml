@@ -16,8 +16,11 @@ targets = ["x86_64-unknown-linux-gnu"]
 substrate-wasm-builder = { optional = true, workspace = true, default-features = true }
 
 [dependencies]
+array-bytes = { workspace = true }
 codec = { features = ["derive"], workspace = true }
-pallet-template.workspace = true
+pallet-kollectyve-id.workspace = true
+pallet-kollectyve-policy.workspace = true
+pallet-kumulus.workspace = true
 polkadot-sdk = { workspace = true, features = [
     "frame-executive",
     "frame-metadata-hash-extension",
@@ -30,6 +33,7 @@ polkadot-sdk = { workspace = true, features = [
     "pallet-aura",
     "pallet-balances",
     "pallet-grandpa",
+    "pallet-multisig",
     "pallet-revive",
     "pallet-sudo",
     "pallet-timestamp",
@@ -53,6 +57,9 @@ polkadot-sdk = { workspace = true, features = [
     "sp-version",
     "staging-xcm",
     "staging-xcm-builder",
+    # Required by the tracing runtime APIs that
+    # `pallet_revive::impl_runtime_apis_plus_revive_traits!` generates (debug_trace*).
+    "with-tracing",
 ], default-features = false }
 scale-info = { features = ["derive", "serde"], workspace = true }
 serde_json = { workspace = true, default-features = false, features = ["alloc"] }
@@ -61,7 +68,9 @@ serde_json = { workspace = true, default-features = false, features = ["alloc"] 
 default = ["std"]
 std = [
 	"codec/std",
-	"pallet-template/std",
+	"pallet-kollectyve-id/std",
+	"pallet-kollectyve-policy/std",
+	"pallet-kumulus/std",
 	"polkadot-sdk/std",
 	"scale-info/std",
 	"serde_json/std",
@@ -69,12 +78,16 @@ std = [
 ]
 
 runtime-benchmarks = [
-	"pallet-template/runtime-benchmarks",
+	"pallet-kollectyve-id/runtime-benchmarks",
+	"pallet-kollectyve-policy/runtime-benchmarks",
+	"pallet-kumulus/runtime-benchmarks",
 	"polkadot-sdk/runtime-benchmarks",
 ]
 
 try-runtime = [
-	"pallet-template/try-runtime",
+	"pallet-kollectyve-id/try-runtime",
+	"pallet-kollectyve-policy/try-runtime",
+	"pallet-kumulus/try-runtime",
 	"polkadot-sdk/try-runtime",
 ]
 

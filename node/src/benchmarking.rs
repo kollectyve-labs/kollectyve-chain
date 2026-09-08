@@ -111,6 +111,7 @@ pub fn create_benchmark_extrinsic(
 		.map(|c| c / 2)
 		.unwrap_or(2) as u64;
 	let tx_ext: runtime::TxExtension = (
+		frame_system::AuthorizeCall::<runtime::Runtime>::new(),
 		frame_system::CheckNonZeroSender::<runtime::Runtime>::new(),
 		frame_system::CheckSpecVersion::<runtime::Runtime>::new(),
 		frame_system::CheckTxVersion::<runtime::Runtime>::new(),
@@ -123,13 +124,16 @@ pub fn create_benchmark_extrinsic(
 		frame_system::CheckWeight::<runtime::Runtime>::new(),
 		pallet_transaction_payment::ChargeTransactionPayment::<runtime::Runtime>::from(0),
 		frame_metadata_hash_extension::CheckMetadataHash::<runtime::Runtime>::new(false),
+		pallet_revive::evm::tx_extension::SetOrigin::<runtime::Runtime>::default(),
 		frame_system::WeightReclaim::<runtime::Runtime>::new(),
 	);
 
+	// One entry per member of `TxExtension`, in the same order.
 	let raw_payload = runtime::SignedPayload::from_raw(
 		call.clone(),
 		tx_ext.clone(),
 		(
+			(),
 			(),
 			runtime::VERSION.spec_version,
 			runtime::VERSION.transaction_version,
@@ -139,6 +143,7 @@ pub fn create_benchmark_extrinsic(
 			(),
 			(),
 			None,
+			(),
 			(),
 		),
 	);

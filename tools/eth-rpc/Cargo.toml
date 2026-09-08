@@ -1,0 +1,22 @@
+[package]
+name = "kollectyve-eth-rpc"
+description = "Ethereum JSON-RPC proxy for the Kollectyve chain (pallet-revive)."
+version = "0.1.0"
+license = "Apache-2.0"
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+edition.workspace = true
+publish = false
+
+# `pallet-revive-eth-rpc` is marked `exclude-from-umbrella`, so it cannot be reached
+# through the `polkadot-sdk` umbrella crate the rest of the workspace uses. This thin
+# wrapper pulls it in directly so that `cargo build --release --workspace` produces the
+# `eth-rpc` binary next to `kollectyve-node`, pinned by our own Cargo.lock.
+[[bin]]
+name = "eth-rpc"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = { workspace = true }
+pallet-revive-eth-rpc = { workspace = true }

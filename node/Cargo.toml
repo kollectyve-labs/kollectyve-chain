@@ -23,6 +23,8 @@ polkadot-sdk = { workspace = true, features = [
     "frame-benchmarking-cli",
     "frame-metadata-hash-extension",
     "frame-system",
+    # `benchmarking.rs` constructs a full `TxExtension`, which includes revive's SetOrigin.
+    "pallet-revive",
     "pallet-transaction-payment",
     "sc-basic-authorship",
     "sc-cli",

@@ -8,23 +8,35 @@ edition = "2021"
 [workspace]
 members = [
     "node",
-    "pallets/template",
+    "primitives/kollectyve-primitives",
+    "pallets/kollectyve-id",
+    "pallets/kollectyve-policy",
+    "pallets/kumulus",
     "runtime",
+    "tools/eth-rpc",
 ]
 resolver = "2"
 
 [workspace.dependencies]
 kollectyve-runtime = { path = "./runtime", default-features = false }
-pallet-template = { path = "./pallets/template", default-features = false }
+kollectyve-primitives = { path = "./primitives/kollectyve-primitives", default-features = false }
+pallet-kollectyve-id = { path = "./pallets/kollectyve-id", default-features = false }
+pallet-kollectyve-policy = { path = "./pallets/kollectyve-policy", default-features = false }
+pallet-kumulus = { path = "./pallets/kumulus", default-features = false }
+anyhow = { version = "1.0.81" }
+array-bytes = { version = "6.2.2", default-features = false }
 clap = { version = "4.5.13" }
 futures = { version = "0.3.31" }
-jsonrpsee = { version = "0.24.3" }
-polkadot-sdk = { version = "2503.0.1", default-features = false }
-codec = { version = "3.7.4", default-features = false, package = "parity-scale-codec" }
+jsonrpsee = { version = "0.24.11" }
+polkadot-sdk = { version = "2606.0.0", default-features = false }
+# The Ethereum JSON-RPC proxy is excluded from the polkadot-sdk umbrella, so it is
+# depended on directly by `tools/eth-rpc`. Keep in lockstep with the umbrella release.
+pallet-revive-eth-rpc = { version = "0.19.0" }
+codec = { version = "3.7.5", default-features = false, package = "parity-scale-codec" }
 scale-info = { version = "2.11.6", default-features = false }
 serde_json = { version = "1.0.132", default-features = false }
-substrate-wasm-builder = { version = "26.0.1", default-features = false }
-frame = { version = "0.9.1", default-features = false, package = "polkadot-sdk-frame" }
+substrate-wasm-builder = { version = "34.0.0", default-features = false }
+frame ={ version = "0.18.0", default-features = false, package = "polkadot-sdk-frame" }
 
 [profile.release]
 opt-level = 3
