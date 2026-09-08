@@ -1,1 +1,4 @@
 target/
+local/
+# Machine-local build environment (protoc / libclang paths); see README "Build".
+.cargo/
