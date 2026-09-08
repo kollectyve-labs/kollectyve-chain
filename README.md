@@ -14,8 +14,54 @@ installation](#alternatives-installations) options.
 Use the following command to build the node without launching it:
 
 ```sh
-cargo build --release
+cargo build --release --workspace
 ```
+
+This produces two binaries:
+
+- `target/release/kollectyve-node` — the chain itself (substrate RPC on `:9944`).
+- `target/release/eth-rpc` — the Ethereum JSON-RPC proxy for `pallet-revive` (`:8545`).
+
+The runtime wasm is built for the `wasm32v1-none` target:
+
+```sh
+rustup target add wasm32v1-none
+```
+
+If you add the target after a failed build, delete `target/release/wbuild` before retrying —
+wasm-builder does not rebuild across a target change.
+
+Depending on your Rust version, linking the runtime wasm may also fail with
+`undefined symbol: ext_storage_get_version_1` (and every other `ext_*` host function).
+sp-runtime-interface emits those as bare `extern "C"` blocks and expects the linker to turn
+them into wasm imports; newer `wasm-ld` rejects them instead. Fix by extending the wasm
+rustflags — the `.cargo/config.toml` below already does this:
+
+```sh
+export WASM_BUILD_RUSTFLAGS="-C link-arg=--import-undefined"
+```
+
+Beyond a Rust toolchain, the build needs `protoc` (litep2p) and `libclang` (rocksdb
+bindings). On Debian/Ubuntu:
+
+```sh
+sudo apt install protobuf-compiler libclang-dev
+```
+
+If you cannot install system packages, drop a `protoc` release binary and a `libclang.so`
+symlink under `~/.local`, then point cargo at them from a **`.cargo/config.toml`** in this
+directory (git-ignored, since the paths are machine-specific):
+
+```toml
+[env]
+PROTOC = "/home/you/.local/bin/protoc"
+LIBCLANG_PATH = "/home/you/.local/lib"
+BINDGEN_EXTRA_CLANG_ARGS = "-I/usr/lib/gcc/x86_64-linux-gnu/14/include"
+```
+
+Prefer this over `export`ing the variables: cargo applies them on every invocation, whereas
+exports are lost between shells. Entries in `[env]` never override a variable that is
+already set, so the file is harmless once the real packages are installed.
 
 ### Embedded Docs
 
@@ -62,6 +108,101 @@ Development chains:
 - Use the **Alice** account as the default `sudo` account.
 - Are preconfigured with a genesis state (`/node/src/chain_spec.rs`) that
   includes several pre-funded development accounts.
+
+### Benchmarks & weights
+
+Every Kollectyve extrinsic carries a benchmarked weight; the values live in each pallet's
+`src/weights.rs` and are wired into the runtime as `SubstrateWeight<Runtime>`. Regenerate them on
+new hardware with a benchmark-enabled build:
+
+```sh
+# `pallet-revive-fixtures` shells out to `solc` to build fixture contracts for pallet-revive's own
+# benchmarks. We do not benchmark that pallet, so skip them rather than installing solc.
+SKIP_PALLET_REVIVE_FIXTURES=1 cargo build --release --features runtime-benchmarks -p kollectyve-node
+
+for p in kollectyve-id kollectyve-policy kumulus; do
+  ./target/release/kollectyve-node benchmark pallet \
+    --chain dev --pallet "pallet_${p//-/_}" --extrinsic '*' \
+    --steps 50 --repeat 20 --wasm-execution compiled \
+    --template .maintain/frame-weight-template.hbs \
+    --output "pallets/$p/src/weights.rs"
+done
+```
+
+`.maintain/frame-weight-template.hbs` emits `frame::deps::*` paths, since the pallets depend on the
+`frame` omnibus rather than on `frame-support` directly. The `runtime-benchmarks` feature changes
+the feature set for the whole dependency graph, so the first such build is a cold one.
+
+Each generated file records the `STEPS`/`REPEAT` and the CPU it was measured on in its header. The
+currently committed values were taken at reduced fidelity (`--steps 20 --repeat 5`) on a developer
+laptop; re-run the loop above at `50`/`20` on the target hardware before a production release.
+
+`cargo test --features runtime-benchmarks` runs each benchmark once and checks its post-state,
+which catches a benchmark that silently stops exercising its extrinsic.
+
+## Smart Contracts (EVM)
+
+The runtime includes [`pallet-revive`](https://docs.rs/pallet-revive) with the REVM backend
+enabled (`AllowEVMBytecode`), so **contracts compiled by plain `solc` run unmodified** —
+whatever Remix, Hardhat or Foundry produce. PolkaVM blobs from
+[`resolc`](https://github.com/paritytech/revive) are accepted too, but are not required.
+
+Ethereum tooling does not speak the substrate RPC, so a proxy translates between the two:
+
+```
+MetaMask / Remix / Hardhat  ──http :8545──▶  eth-rpc  ──ws :9944──▶  kollectyve-node
+```
+
+### Start a local chain
+
+```sh
+./scripts/dev-chain.sh
+```
+
+That runs `kollectyve-node --dev` and `eth-rpc` together and tails both logs; Ctrl-C stops
+the pair. Check it is alive:
+
+```sh
+curl -s -X POST http://127.0.0.1:8545 -H 'content-type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}'
+# {"jsonrpc":"2.0","id":1,"result":"0x6d60"}   # 28000
+```
+
+### Development accounts
+
+The `dev` genesis preset funds the well-known Ethereum dev accounts and pre-registers their
+`AccountId32 <-> H160` mapping, so they can deploy immediately:
+
+| Account | Address | Private key (public, dev only) |
+|---|---|---|
+| alith | `0xf24FF3a9CF04c71Dbc94D0b566f7A27B94566cac` | `0x5fb92d6e98884f76de468fa3f6278f8807c48bebc13595d45af5bdc4da702133` |
+| baltathar | `0x3Cd0A705a2DC65e5b1E1205896BaA2be8A07c6e0` | `0x8075991ce870b93a8870eca0c0f91913d12f47948ca0fd25b49c6fa7cdbeee8b` |
+
+`charleth`, `dorothy` and `ethan` are funded as well — see
+`runtime/src/genesis_config_presets.rs`. Any other account works too: `AutoMap` maps an
+unknown Ethereum address on its first transaction.
+
+### Test locally with Hardhat
+
+```sh
+cd contracts
+npm install
+npm test          # hardhat test --network kollectyveLocal
+npm run deploy    # deploy + exercise Storage.sol
+```
+
+The project targets solc `0.8.28` with `evmVersion: "cancun"`, which is the instruction set
+the pallet's REVM backend implements.
+
+### Deploy from Remix
+
+1. Add the chain to MetaMask: RPC `http://127.0.0.1:8545`, chain ID `28000`, symbol `KOL`.
+2. Import the `alith` private key above, so you have a funded account.
+3. Open [remix.ethereum.org](https://remix.ethereum.org), paste `contracts/src/Storage.sol`.
+4. Compile with 0.8.28 (Advanced Configurations → EVM version `cancun`).
+5. Deploy & Run → Environment **Injected Provider – MetaMask** → Deploy.
+
+Blocks are authored every 6s, so a deploy confirms in a few seconds.
 
 ### Connect with Polkadot-JS Apps Front-End
 
