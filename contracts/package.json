@@ -1,0 +1,17 @@
+{
+  "name": "kollectyve-contracts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Solidity contracts for the Kollectyve chain (pallet-revive / EVM backend).",
+  "scripts": {
+    "build": "hardhat compile",
+    "test": "hardhat test --network kollectyveLocal",
+    "deploy": "hardhat run scripts/deploy.js --network kollectyveLocal",
+    "chain-info": "hardhat run scripts/chain-info.js --network kollectyveLocal"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "dotenv": "^16.4.5",
+    "hardhat": "^2.26.0"
+  }
+}
