@@ -2,3 +2,7 @@ target/
 local/
 # Machine-local build environment (protoc / libclang paths); see README "Build".
 .cargo/
+
+# Internal documentation is deliberately kept out of this public repository.
+# It lives in the parent kollectyve-ecosystem directory, under docs/chain/.
+docs/

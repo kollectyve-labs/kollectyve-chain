@@ -120,14 +120,24 @@ new hardware with a benchmark-enabled build:
 # benchmarks. We do not benchmark that pallet, so skip them rather than installing solc.
 SKIP_PALLET_REVIVE_FIXTURES=1 cargo build --release --features runtime-benchmarks -p kollectyve-node
 
+WASM=target/release/wbuild/kollectyve-runtime/kollectyve_runtime.compact.compressed.wasm
+
 for p in kollectyve-id kollectyve-policy kumulus; do
   ./target/release/kollectyve-node benchmark pallet \
-    --chain dev --pallet "pallet_${p//-/_}" --extrinsic '*' \
+    --runtime "$WASM" --genesis-builder=runtime --genesis-builder-preset=development \
+    --pallet "pallet_${p//-/_}" --extrinsic '*' \
     --steps 50 --repeat 20 --wasm-execution compiled \
     --template .maintain/frame-weight-template.hbs \
     --output "pallets/$p/src/weights.rs"
 done
 ```
+
+Take the runtime blob from the *same* `runtime-benchmarks` build — the default one has no
+benchmark code and the run fails. Passing `--chain dev` instead of `--runtime` still works, but
+builds genesis from the chain spec, which the CLI deprecated: it warns that it "may become a hard
+error any time after December 2024". `development` is `sp_genesis_builder::DEV_RUNTIME_PRESET`, the
+same preset `--chain dev` resolves to, so the measurements are unchanged; generated headers just
+record `CHAIN: None` rather than `Some("dev")`.
 
 `.maintain/frame-weight-template.hbs` emits `frame::deps::*` paths, since the pallets depend on the
 `frame` omnibus rather than on `frame-support` directly. The `runtime-benchmarks` feature changes
@@ -136,6 +146,25 @@ the feature set for the whole dependency graph, so the first such build is a col
 Each generated file records the `STEPS`/`REPEAT` and the CPU it was measured on in its header. The
 currently committed values were taken at reduced fidelity (`--steps 20 --repeat 5`) on a developer
 laptop; re-run the loop above at `50`/`20` on the target hardware before a production release.
+
+**Let the machine go idle first.** Benchmarking straight after the cold build above measures a hot,
+downclocked CPU and inflates every weight — on a throttled laptop (85 °C, ~2.1 GHz against a
+4.4 GHz max) all eight extrinsics came out 42-94% over their committed values, reproducing them to
+within 1% once the machine had settled. The inflation is uniform and leaves storage reads/writes
+and PoV sizes byte-identical, so it reads exactly like a real regression and nothing in the
+generated file flags it. Always diff a fresh run against the committed values before adopting it:
+a large drift with unchanged reads/writes and PoV is thermal, not code.
+
+Two things that look like they should help but do not:
+
+- **Do not pin with `taskset`.** On a hybrid CPU it is tempting to pin to the P-cores, but
+  confining the benchmark and its wasm-compilation threads to a couple of physical cores makes them
+  contend: pinning to `0-3` on an i5-1235U read ~34% *higher* than leaving the scheduler alone,
+  and far less repeatably.
+- **Keep `--extrinsic '*'`.** Re-running one extrinsic on its own measures a colder cache than it
+  sees in the full-pallet sweep — `rotate_controller` alone reads ~24.5us against ~17.0us in the
+  sweep, reproducibly in both cases. They are measuring different things; the sweep is the
+  reference, and it is what the committed values come from.
 
 `cargo test --features runtime-benchmarks` runs each benchmark once and checks its post-state,
 which catches a benchmark that silently stops exercising its extrinsic.
