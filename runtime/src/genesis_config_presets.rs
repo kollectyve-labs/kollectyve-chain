@@ -32,7 +32,7 @@ fn eth_dev_accounts() -> Vec<AccountId> {
 		"ff64d3f6efe2317ee2807d223a0bdc4c0c49dfdbeeeeeeeeeeeeeeeeeeeeeeee",
 	]
 	.iter()
-	.map(|hex| array_bytes::hex_n_into_unchecked::<_, AccountId, 32>(hex))
+	.map(array_bytes::hex_n_into_unchecked::<_, AccountId, 32>)
 	.collect()
 }
 

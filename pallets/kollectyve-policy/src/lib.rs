@@ -81,11 +81,9 @@ pub mod pallet {
 
 	#[pallet::config]
 	pub trait Config:
-		frame::deps::frame_system::Config + pallet_timestamp::Config
+		frame::deps::frame_system::Config<RuntimeEvent: From<Event<Self>>>
+		+ pallet_timestamp::Config
 	{
-		/// The overarching runtime event type.
-		type RuntimeEvent: From<Event<Self>>
-			+ IsType<<Self as frame::deps::frame_system::Config>::RuntimeEvent>;
 		/// Identifier of a regulated asset. `Default` lets benchmarks name an asset generically.
 		type AssetId: Parameter + Member + Copy + Default + MaxEncodedLen;
 		/// Origin allowed to set claims / policies / freeze. A multisig / root — never the hot

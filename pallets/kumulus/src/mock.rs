@@ -36,7 +36,6 @@ impl frame_system::Config for Test {
 }
 
 impl pallet_kollectyve_id::Config for Test {
-	type RuntimeEvent = RuntimeEvent;
 	// Kumulus tests only need to mint identities, so both origins are root here.
 	type EnrollmentOrigin = frame_system::EnsureRoot<u64>;
 	type ComplianceOrigin = frame_system::EnsureRoot<u64>;
@@ -44,7 +43,6 @@ impl pallet_kollectyve_id::Config for Test {
 }
 
 impl pallet_kumulus::Config for Test {
-	type RuntimeEvent = RuntimeEvent;
 	// Resolve identities through the real identity anchor.
 	type Identity = KollectyveId;
 	type WeightInfo = ();

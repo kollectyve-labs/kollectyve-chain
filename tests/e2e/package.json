@@ -1,0 +1,13 @@
+{
+  "name": "kollectyve-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "End-to-end extrinsic tests against a live Kollectyve dev chain.",
+  "scripts": {
+    "test": "node extrinsics.mjs"
+  },
+  "dependencies": {
+    "@polkadot/api": "^16.4.1"
+  }
+}

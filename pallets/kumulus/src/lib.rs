@@ -65,10 +65,9 @@ pub mod pallet {
 	}
 
 	#[pallet::config]
-	pub trait Config: frame::deps::frame_system::Config {
-		/// The overarching runtime event type.
-		type RuntimeEvent: From<Event<Self>>
-			+ IsType<<Self as frame::deps::frame_system::Config>::RuntimeEvent>;
+	pub trait Config:
+		frame::deps::frame_system::Config<RuntimeEvent: From<Event<Self>>>
+	{
 		/// Read-only identity resolution. Wired to `pallet-kollectyve-id` in the runtime.
 		type Identity: IdentityLookup<Self::AccountId>;
 		/// Weights for this pallet's dispatchables.

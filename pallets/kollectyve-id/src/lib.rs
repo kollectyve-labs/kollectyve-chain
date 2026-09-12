@@ -47,10 +47,9 @@ pub mod pallet {
 	use kollectyve_primitives::{IdentityId, IdentityLookup, KycTier};
 
 	#[pallet::config]
-	pub trait Config: frame::deps::frame_system::Config {
-		/// The overarching runtime event type.
-		type RuntimeEvent: From<Event<Self>>
-			+ IsType<<Self as frame::deps::frame_system::Config>::RuntimeEvent>;
+	pub trait Config:
+		frame::deps::frame_system::Config<RuntimeEvent: From<Event<Self>>>
+	{
 		/// Origin allowed to enroll new identities (hot KMS key / root). May ONLY create tier-`None`
 		/// identities via `register_identity`.
 		type EnrollmentOrigin: EnsureOrigin<

@@ -109,6 +109,27 @@ Development chains:
 - Are preconfigured with a genesis state (`/node/src/chain_spec.rs`) that
   includes several pre-funded development accounts.
 
+### Tests
+
+```sh
+cargo test --release --workspace       # 39 pallet unit tests, against mock runtimes
+```
+
+Those use each pallet's own mock runtime, so they say nothing about how the pallets are
+wired into the real one. `tests/e2e` covers that gap — it drives all eight extrinsics and
+their failure paths over RPC against a live dev chain, which is what catches a mis-wired
+origin, a changed pallet index or a genesis preset that does not fund who it claims to:
+
+```sh
+./scripts/dev-chain.sh                 # in another shell
+cd tests/e2e && npm install && npm test
+```
+
+Start it against a **fresh** chain: the suite registers an identity for `//Bob`, so a
+second run on the same state fails with `AlreadyRegistered`. See `tests/e2e/README.md`.
+
+There is no CI pipeline; run the suites above locally before opening a pull request.
+
 ### Benchmarks & weights
 
 Every Kollectyve extrinsic carries a benchmarked weight; the values live in each pallet's

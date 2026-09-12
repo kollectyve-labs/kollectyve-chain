@@ -213,7 +213,6 @@ pub type ComplianceOrigin =
 
 /// Stable on-chain identity anchor.
 impl pallet_kollectyve_id::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
 	type EnrollmentOrigin = EnrollmentOrigin;
 	type ComplianceOrigin = ComplianceOrigin;
 	type WeightInfo = pallet_kollectyve_id::weights::SubstrateWeight<Runtime>;
@@ -221,7 +220,6 @@ impl pallet_kollectyve_id::Config for Runtime {
 
 /// KYC/compliance gate for regulated assets.
 impl pallet_kollectyve_policy::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
 	type AssetId = u32;
 	type ComplianceOrigin = ComplianceOrigin;
 	type Identity = KollectyveId;
@@ -232,7 +230,6 @@ impl pallet_kollectyve_policy::Config for Runtime {
 
 /// Provider registry — records keyed by identity, no policy gate.
 impl pallet_kumulus::Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
 	type Identity = KollectyveId;
 	type WeightInfo = pallet_kumulus::weights::SubstrateWeight<Runtime>;
 	#[cfg(feature = "runtime-benchmarks")]

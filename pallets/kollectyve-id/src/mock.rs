@@ -46,7 +46,6 @@ pub type EnrollmentOrigin = EitherOfDiverse<EnsureRoot<u64>, EnsureSignedBy<Enro
 pub type ComplianceOrigin = EitherOfDiverse<EnsureRoot<u64>, EnsureSignedBy<ComplianceKey, u64>>;
 
 impl pallet_kollectyve_id::Config for Test {
-	type RuntimeEvent = RuntimeEvent;
 	type EnrollmentOrigin = EnrollmentOrigin;
 	type ComplianceOrigin = ComplianceOrigin;
 	type WeightInfo = ();
