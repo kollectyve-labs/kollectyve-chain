@@ -11,6 +11,7 @@ members = [
     "primitives/kollectyve-primitives",
     "pallets/kollectyve-id",
     "pallets/kollectyve-policy",
+    "pallets/kollectyve-credentials",
     "pallets/kumulus",
     "runtime",
     "tools/eth-rpc",
@@ -22,6 +23,7 @@ kollectyve-runtime = { path = "./runtime", default-features = false }
 kollectyve-primitives = { path = "./primitives/kollectyve-primitives", default-features = false }
 pallet-kollectyve-id = { path = "./pallets/kollectyve-id", default-features = false }
 pallet-kollectyve-policy = { path = "./pallets/kollectyve-policy", default-features = false }
+pallet-kollectyve-credentials = { path = "./pallets/kollectyve-credentials", default-features = false }
 pallet-kumulus = { path = "./pallets/kumulus", default-features = false }
 anyhow = { version = "1.0.81" }
 array-bytes = { version = "6.2.2", default-features = false }

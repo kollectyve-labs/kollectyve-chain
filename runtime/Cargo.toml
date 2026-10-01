@@ -20,6 +20,7 @@ array-bytes = { workspace = true }
 codec = { features = ["derive"], workspace = true }
 pallet-kollectyve-id.workspace = true
 pallet-kollectyve-policy.workspace = true
+pallet-kollectyve-credentials.workspace = true
 pallet-kumulus.workspace = true
 polkadot-sdk = { workspace = true, features = [
     "frame-executive",
@@ -70,6 +71,7 @@ std = [
 	"codec/std",
 	"pallet-kollectyve-id/std",
 	"pallet-kollectyve-policy/std",
+	"pallet-kollectyve-credentials/std",
 	"pallet-kumulus/std",
 	"polkadot-sdk/std",
 	"scale-info/std",
@@ -80,6 +82,7 @@ std = [
 runtime-benchmarks = [
 	"pallet-kollectyve-id/runtime-benchmarks",
 	"pallet-kollectyve-policy/runtime-benchmarks",
+	"pallet-kollectyve-credentials/runtime-benchmarks",
 	"pallet-kumulus/runtime-benchmarks",
 	"polkadot-sdk/runtime-benchmarks",
 ]
@@ -87,6 +90,7 @@ runtime-benchmarks = [
 try-runtime = [
 	"pallet-kollectyve-id/try-runtime",
 	"pallet-kollectyve-policy/try-runtime",
+	"pallet-kollectyve-credentials/try-runtime",
 	"pallet-kumulus/try-runtime",
 	"polkadot-sdk/try-runtime",
 ]

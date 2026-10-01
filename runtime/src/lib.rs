@@ -65,7 +65,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: alloc::borrow::Cow::Borrowed("kollectyve-runtime"),
 	impl_name: alloc::borrow::Cow::Borrowed("kollectyve-runtime"),
 	authoring_version: 1,
-	spec_version: 103,
+	spec_version: 104,
 	impl_version: 1,
 	apis: apis::RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -249,6 +249,9 @@ mod runtime {
 
 	#[runtime::pallet_index(11)]
 	pub type KollectyvePolicy = pallet_kollectyve_policy;
+
+	#[runtime::pallet_index(12)]
+	pub type KollectyveCredentials = pallet_kollectyve_credentials;
 
 	#[runtime::pallet_index(60)]
 	pub type Revive = pallet_revive;
