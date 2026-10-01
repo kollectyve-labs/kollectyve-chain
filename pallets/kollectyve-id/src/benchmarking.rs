@@ -69,5 +69,41 @@ mod benchmarks {
 		Ok(())
 	}
 
+	#[benchmark]
+	fn commit_next_controller() -> Result<(), BenchmarkError> {
+		let enrollment = T::EnrollmentOrigin::try_successful_origin()
+			.map_err(|_| BenchmarkError::Weightless)?;
+		let who = controller::<T>(0);
+		Pallet::<T>::register_identity(enrollment, who.clone(), H256::repeat_byte(1))?;
+		let id = IdentityOf::<T>::get(&who).expect("identity was registered");
+		let commitment = Pallet::<T>::controller_commitment(&controller::<T>(1));
+
+		#[extrinsic_call]
+		_(RawOrigin::Signed(who), id, commitment);
+
+		assert_eq!(NextControllerCommitment::<T>::get(id), Some(commitment));
+		Ok(())
+	}
+
+	#[benchmark]
+	fn rotate_to_committed() -> Result<(), BenchmarkError> {
+		let enrollment = T::EnrollmentOrigin::try_successful_origin()
+			.map_err(|_| BenchmarkError::Weightless)?;
+		let old = controller::<T>(0);
+		Pallet::<T>::register_identity(enrollment, old.clone(), H256::repeat_byte(1))?;
+		let id = IdentityOf::<T>::get(&old).expect("identity was registered");
+		let new = controller::<T>(1);
+		NextControllerCommitment::<T>::insert(id, Pallet::<T>::controller_commitment(&new));
+		// Worst case: the rotation also installs the following commitment.
+		let following = Pallet::<T>::controller_commitment(&controller::<T>(2));
+
+		#[extrinsic_call]
+		_(RawOrigin::Signed(new.clone()), id, Some(following));
+
+		assert_eq!(ControllerOf::<T>::get(id), Some(new));
+		assert_eq!(NextControllerCommitment::<T>::get(id), Some(following));
+		Ok(())
+	}
+
 	impl_benchmark_test_suite!(Pallet, crate::mock::new_test_ext(), crate::mock::Test);
 }
