@@ -21,6 +21,15 @@
 //! [`rotate_controller`](pallet::Pallet::rotate_controller) is **controller-only**: neither origin
 //! can rotate a user's key. Registrar-assisted recovery is deferred.
 //!
+//! ## Pre-rotation (KERI-style, opt-in)
+//! A controller may [`commit_next_controller`](pallet::Pallet::commit_next_controller): publish
+//! `blake2_256(SCALE(next_account))` without revealing the account. From then on the plain
+//! `rotate_controller` is refused, and control can only move through
+//! [`rotate_to_committed`](pallet::Pallet::rotate_to_committed), **signed by the pre-committed
+//! next key**. A stolen current key can therefore neither rotate the identity nor replace the
+//! commitment. Each committed rotation must name the commitment for the key after it (or `None`
+//! to leave pre-rotation).
+//!
 //! Shared types and the read trait live in `kollectyve-primitives`; other pallets depend on that
 //! crate, never on this one.
 
@@ -103,6 +112,12 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type ComplianceKey<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
 
+	/// `IdentityId -> blake2_256(SCALE(next controller))`. Present means the identity is under
+	/// pre-rotation: only the committed key may take control, via `rotate_to_committed`.
+	#[pallet::storage]
+	pub type NextControllerCommitment<T: Config> =
+		StorageMap<_, Blake2_128Concat, IdentityId, H256, OptionQuery>;
+
 	/// Genesis wiring for the two privileged origins. Both default to `None` (dev: root/sudo only);
 	/// a production chain spec sets the real enrollment key and compliance address here — keeping
 	/// operator keys in the chain spec, never in runtime code.
@@ -131,6 +146,10 @@ pub mod pallet {
 		IdentityRegistered { id: IdentityId, controller: T::AccountId, commitment: H256 },
 		TierSet { id: IdentityId, tier: KycTier },
 		ControllerRotated { id: IdentityId, old: T::AccountId, new: T::AccountId },
+		/// The identity is now under pre-rotation (or moved to a new commitment on rotation).
+		NextControllerCommitted { id: IdentityId, commitment: H256 },
+		/// A committed rotation cleared the commitment; the identity left pre-rotation.
+		PreRotationEnded { id: IdentityId },
 	}
 
 	#[pallet::error]
@@ -147,6 +166,14 @@ pub mod pallet {
 		CommitmentAlreadyUsed,
 		/// The identity-id allocator overflowed.
 		IdOverflow,
+		/// The identity is under pre-rotation; use `rotate_to_committed` signed by the next key.
+		PreRotationRequired,
+		/// A next-controller commitment already exists; only a committed rotation replaces it.
+		AlreadyCommitted,
+		/// The identity is not under pre-rotation.
+		NoCommitment,
+		/// The signer's account does not hash to the committed next controller.
+		CommitmentMismatch,
 	}
 
 	#[pallet::call]
@@ -207,6 +234,74 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 			let old = ControllerOf::<T>::get(id).ok_or(Error::<T>::UnknownIdentity)?;
 			ensure!(who == old, Error::<T>::NotController);
+			ensure!(
+				!NextControllerCommitment::<T>::contains_key(id),
+				Error::<T>::PreRotationRequired
+			);
+			Self::do_rotate(id, old, new)
+		}
+
+		/// Opt the identity into pre-rotation by committing to the hash of its next controller.
+		///
+		/// **Controller-only**, and only once: while a commitment exists it can be replaced solely
+		/// by a committed rotation, so a stolen current key cannot swap in its own successor.
+		/// `commitment` is `blake2_256(SCALE(next_account))`; see [`Pallet::controller_commitment`].
+		#[pallet::call_index(3)]
+		#[pallet::weight(T::WeightInfo::commit_next_controller())]
+		pub fn commit_next_controller(
+			origin: OriginFor<T>,
+			id: IdentityId,
+			commitment: H256,
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			let controller = ControllerOf::<T>::get(id).ok_or(Error::<T>::UnknownIdentity)?;
+			ensure!(who == controller, Error::<T>::NotController);
+			ensure!(
+				!NextControllerCommitment::<T>::contains_key(id),
+				Error::<T>::AlreadyCommitted
+			);
+			NextControllerCommitment::<T>::insert(id, commitment);
+			Self::deposit_event(Event::NextControllerCommitted { id, commitment });
+			Ok(())
+		}
+
+		/// Take control of a pre-rotated identity. **Signed by the committed next key**, which
+		/// becomes the controller. `next_commitment` commits to the key after it; `None` ends
+		/// pre-rotation (the plain `rotate_controller` works again).
+		#[pallet::call_index(4)]
+		#[pallet::weight(T::WeightInfo::rotate_to_committed())]
+		pub fn rotate_to_committed(
+			origin: OriginFor<T>,
+			id: IdentityId,
+			next_commitment: Option<H256>,
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			let old = ControllerOf::<T>::get(id).ok_or(Error::<T>::UnknownIdentity)?;
+			let committed = NextControllerCommitment::<T>::get(id).ok_or(Error::<T>::NoCommitment)?;
+			ensure!(Self::controller_commitment(&who) == committed, Error::<T>::CommitmentMismatch);
+			Self::do_rotate(id, old, who)?;
+			match next_commitment {
+				Some(commitment) => {
+					NextControllerCommitment::<T>::insert(id, commitment);
+					Self::deposit_event(Event::NextControllerCommitted { id, commitment });
+				},
+				None => {
+					NextControllerCommitment::<T>::remove(id);
+					Self::deposit_event(Event::PreRotationEnded { id });
+				},
+			}
+			Ok(())
+		}
+	}
+
+	impl<T: Config> Pallet<T> {
+		/// The pre-rotation commitment for `account`: `blake2_256(SCALE(account))`. Backends compute
+		/// the same bytes off-chain before calling `commit_next_controller`.
+		pub fn controller_commitment(account: &T::AccountId) -> H256 {
+			H256(frame::hashing::blake2_256(&account.encode()))
+		}
+
+		fn do_rotate(id: IdentityId, old: T::AccountId, new: T::AccountId) -> DispatchResult {
 			ensure!(!IdentityOf::<T>::contains_key(&new), Error::<T>::ControllerInUse);
 			IdentityOf::<T>::remove(&old);
 			ControllerOf::<T>::insert(id, new.clone());

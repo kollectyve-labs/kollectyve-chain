@@ -11,5 +11,6 @@ frame_benchmarking::define_benchmarks!(
 	[pallet_sudo, Sudo]
 	[pallet_kollectyve_id, KollectyveId]
 	[pallet_kollectyve_policy, KollectyvePolicy]
+	[pallet_kollectyve_credentials, KollectyveCredentials]
 	[pallet_kumulus, Kumulus]
 );

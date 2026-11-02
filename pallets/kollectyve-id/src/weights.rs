@@ -43,6 +43,8 @@ pub trait WeightInfo {
 	fn register_identity() -> Weight;
 	fn set_tier() -> Weight;
 	fn rotate_controller() -> Weight;
+	fn commit_next_controller() -> Weight;
+	fn rotate_to_committed() -> Weight;
 }
 
 /// Weights for `pallet_kollectyve_id`, measured on the reference hardware.
@@ -94,6 +96,26 @@ impl<T: frame::deps::frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(3))
 	}
+	// PLACEHOLDER — hand-estimated, not measured. Regenerate with the benchmark CLI (on a cold
+	// CPU) before this reaches a live chain: rotate_controller's measured weight plus headroom.
+	/// Storage: `KollectyveId::ControllerOf` (r:1 w:0)
+	/// Storage: `KollectyveId::NextControllerCommitment` (r:1 w:1)
+	fn commit_next_controller() -> Weight {
+		Weight::from_parts(30_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 3521))
+			.saturating_add(T::DbWeight::get().reads(2))
+			.saturating_add(T::DbWeight::get().writes(1))
+	}
+	// PLACEHOLDER — see `commit_next_controller`.
+	/// Storage: `KollectyveId::ControllerOf` (r:1 w:1)
+	/// Storage: `KollectyveId::NextControllerCommitment` (r:1 w:1)
+	/// Storage: `KollectyveId::IdentityOf` (r:1 w:2)
+	fn rotate_to_committed() -> Weight {
+		Weight::from_parts(45_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 3521))
+			.saturating_add(T::DbWeight::get().reads(3))
+			.saturating_add(T::DbWeight::get().writes(4))
+	}
 }
 
 // For backwards compatibility and tests.
@@ -143,5 +165,25 @@ impl WeightInfo for () {
 			.saturating_add(Weight::from_parts(0, 3521))
 			.saturating_add(RocksDbWeight::get().reads(2))
 			.saturating_add(RocksDbWeight::get().writes(3))
+	}
+	// PLACEHOLDER — hand-estimated, not measured. Regenerate with the benchmark CLI (on a cold
+	// CPU) before this reaches a live chain: rotate_controller's measured weight plus headroom.
+	/// Storage: `KollectyveId::ControllerOf` (r:1 w:0)
+	/// Storage: `KollectyveId::NextControllerCommitment` (r:1 w:1)
+	fn commit_next_controller() -> Weight {
+		Weight::from_parts(30_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 3521))
+			.saturating_add(RocksDbWeight::get().reads(2))
+			.saturating_add(RocksDbWeight::get().writes(1))
+	}
+	// PLACEHOLDER — see `commit_next_controller`.
+	/// Storage: `KollectyveId::ControllerOf` (r:1 w:1)
+	/// Storage: `KollectyveId::NextControllerCommitment` (r:1 w:1)
+	/// Storage: `KollectyveId::IdentityOf` (r:1 w:2)
+	fn rotate_to_committed() -> Weight {
+		Weight::from_parts(45_000_000, 0)
+			.saturating_add(Weight::from_parts(0, 3521))
+			.saturating_add(RocksDbWeight::get().reads(3))
+			.saturating_add(RocksDbWeight::get().writes(4))
 	}
 }

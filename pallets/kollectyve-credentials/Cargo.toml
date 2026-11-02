@@ -1,0 +1,48 @@
+[package]
+name = "pallet-kollectyve-credentials"
+description = "Format-neutral verifiable-credential registry anchored to Kollectyve identities."
+version = "0.1.0"
+license = "Unlicense"
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+edition.workspace = true
+publish = false
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[dependencies]
+codec = { features = ["derive"], workspace = true }
+frame = { workspace = true, features = ["experimental", "runtime"], default-features = false }
+scale-info = { features = ["derive"], workspace = true }
+kollectyve-primitives = { workspace = true }
+# Issuance, expiry and revocation are stamped in unix millis from `pallet-timestamp`, matching
+# `pallet-kollectyve-policy`, so they read the same to off-chain verifiers across upgrades.
+polkadot-sdk = { workspace = true, features = ["pallet-timestamp"], default-features = false }
+
+[dev-dependencies]
+polkadot-sdk = { workspace = true, features = ["pallet-timestamp", "sp-core", "sp-io", "sp-runtime"], default-features = true }
+# The identity anchor is wired into the test mock to satisfy `IdentityLookup`.
+pallet-kollectyve-id = { workspace = true, default-features = true }
+
+[features]
+default = ["std"]
+std = [
+	"codec/std",
+	"frame/std",
+	"kollectyve-primitives/std",
+	"polkadot-sdk/std",
+	"scale-info/std",
+]
+runtime-benchmarks = [
+	"frame/runtime-benchmarks",
+	"kollectyve-primitives/runtime-benchmarks",
+	"pallet-kollectyve-id/runtime-benchmarks",
+	"polkadot-sdk/runtime-benchmarks",
+]
+try-runtime = [
+	"frame/try-runtime",
+	"kollectyve-primitives/try-runtime",
+	"polkadot-sdk/try-runtime",
+]

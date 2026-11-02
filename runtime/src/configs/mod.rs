@@ -228,6 +228,16 @@ impl pallet_kollectyve_policy::Config for Runtime {
 	type BenchmarkHelper = KollectyveId;
 }
 
+/// Verifiable-credential registry keyed to identities. Trust anchors are governance's call, which
+/// today means sudo; it moves with sudo when governance lands.
+impl pallet_kollectyve_credentials::Config for Runtime {
+	type Identity = KollectyveId;
+	type AnchorOrigin = EnsureRoot<AccountId>;
+	type WeightInfo = pallet_kollectyve_credentials::weights::SubstrateWeight<Runtime>;
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = KollectyveId;
+}
+
 /// Provider registry — records keyed by identity, no policy gate.
 impl pallet_kumulus::Config for Runtime {
 	type Identity = KollectyveId;

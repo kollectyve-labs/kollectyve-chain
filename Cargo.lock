@@ -6987,6 +6987,7 @@ name = "kollectyve-runtime"
 version = "0.1.0"
 dependencies = [
  "array-bytes 6.2.3",
+ "pallet-kollectyve-credentials",
  "pallet-kollectyve-id",
  "pallet-kollectyve-policy",
  "pallet-kumulus",
@@ -9684,6 +9685,18 @@ dependencies = [
  "parity-scale-codec",
  "polkadot-sdk-frame",
  "safe-mix",
+ "scale-info",
+]
+
+[[package]]
+name = "pallet-kollectyve-credentials"
+version = "0.1.0"
+dependencies = [
+ "kollectyve-primitives",
+ "pallet-kollectyve-id",
+ "parity-scale-codec",
+ "polkadot-sdk",
+ "polkadot-sdk-frame",
  "scale-info",
 ]
 

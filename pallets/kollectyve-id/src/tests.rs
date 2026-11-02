@@ -1,4 +1,7 @@
-use crate::{mock::*, ControllerOf, Error, Event, IdentityOf, TierOf, UsedCommitments};
+use crate::{
+	mock::*, ControllerOf, Error, Event, IdentityOf, NextControllerCommitment, TierOf,
+	UsedCommitments,
+};
 use frame::deps::frame_support::{assert_noop, assert_ok};
 use frame::deps::sp_core::H256;
 use frame::deps::sp_runtime::DispatchError;
@@ -182,6 +185,153 @@ fn rotate_controller_rejects_controller_in_use() {
 			KollectyveId::rotate_controller(RuntimeOrigin::signed(1), 0, 2),
 			Error::<Test>::ControllerInUse
 		);
+	});
+}
+
+// --- pre-rotation -----------------------------------------------------------
+
+/// Identity 0 controlled by account 1, pre-committed to account 2 as its next controller.
+fn pre_rotated() {
+	assert_ok!(KollectyveId::register_identity(RuntimeOrigin::root(), 1, commitment(1)));
+	assert_ok!(KollectyveId::commit_next_controller(
+		RuntimeOrigin::signed(1),
+		0,
+		KollectyveId::controller_commitment(&2)
+	));
+}
+
+#[test]
+fn commit_next_controller_works() {
+	new_test_ext().execute_with(|| {
+		System::set_block_number(1);
+		pre_rotated();
+		let c = KollectyveId::controller_commitment(&2);
+		assert_eq!(NextControllerCommitment::<Test>::get(0), Some(c));
+		System::assert_last_event(Event::NextControllerCommitted { id: 0, commitment: c }.into());
+	});
+}
+
+#[test]
+fn commit_next_controller_is_controller_only() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(KollectyveId::register_identity(RuntimeOrigin::root(), 1, commitment(1)));
+		let c = KollectyveId::controller_commitment(&2);
+		assert_noop!(
+			KollectyveId::commit_next_controller(RuntimeOrigin::signed(10), 0, c),
+			Error::<Test>::NotController
+		);
+		assert_noop!(
+			KollectyveId::commit_next_controller(RuntimeOrigin::root(), 0, c),
+			DispatchError::BadOrigin
+		);
+		assert_noop!(
+			KollectyveId::commit_next_controller(RuntimeOrigin::signed(1), 99, c),
+			Error::<Test>::UnknownIdentity
+		);
+	});
+}
+
+#[test]
+fn stolen_current_key_cannot_replace_commitment_or_rotate() {
+	new_test_ext().execute_with(|| {
+		pre_rotated();
+		// Whoever holds key 1 can no longer swap in their own successor...
+		assert_noop!(
+			KollectyveId::commit_next_controller(
+				RuntimeOrigin::signed(1),
+				0,
+				KollectyveId::controller_commitment(&3)
+			),
+			Error::<Test>::AlreadyCommitted
+		);
+		// ...nor move control directly.
+		assert_noop!(
+			KollectyveId::rotate_controller(RuntimeOrigin::signed(1), 0, 3),
+			Error::<Test>::PreRotationRequired
+		);
+		assert_eq!(ControllerOf::<Test>::get(0), Some(1));
+	});
+}
+
+#[test]
+fn rotate_to_committed_by_next_key_works_and_chains() {
+	new_test_ext().execute_with(|| {
+		System::set_block_number(1);
+		pre_rotated();
+		let next = KollectyveId::controller_commitment(&3);
+		assert_ok!(KollectyveId::rotate_to_committed(RuntimeOrigin::signed(2), 0, Some(next)));
+
+		assert_eq!(ControllerOf::<Test>::get(0), Some(2));
+		assert_eq!(IdentityOf::<Test>::get(2), Some(0));
+		assert!(IdentityOf::<Test>::get(1).is_none());
+		assert_eq!(NextControllerCommitment::<Test>::get(0), Some(next));
+		System::assert_has_event(Event::ControllerRotated { id: 0, old: 1, new: 2 }.into());
+
+		// The chain continues: only key 3 can take it next.
+		assert_noop!(
+			KollectyveId::rotate_to_committed(RuntimeOrigin::signed(2), 0, None),
+			Error::<Test>::CommitmentMismatch
+		);
+		assert_ok!(KollectyveId::rotate_to_committed(RuntimeOrigin::signed(3), 0, None));
+		assert_eq!(ControllerOf::<Test>::get(0), Some(3));
+	});
+}
+
+#[test]
+fn rotate_to_committed_rejects_wrong_signer() {
+	new_test_ext().execute_with(|| {
+		pre_rotated();
+		for who in [1u64, 3, 10, 20] {
+			assert_noop!(
+				KollectyveId::rotate_to_committed(RuntimeOrigin::signed(who), 0, None),
+				Error::<Test>::CommitmentMismatch
+			);
+		}
+		assert_noop!(
+			KollectyveId::rotate_to_committed(RuntimeOrigin::root(), 0, None),
+			DispatchError::BadOrigin
+		);
+	});
+}
+
+#[test]
+fn rotate_to_committed_requires_commitment() {
+	new_test_ext().execute_with(|| {
+		assert_ok!(KollectyveId::register_identity(RuntimeOrigin::root(), 1, commitment(1)));
+		assert_noop!(
+			KollectyveId::rotate_to_committed(RuntimeOrigin::signed(2), 0, None),
+			Error::<Test>::NoCommitment
+		);
+		assert_noop!(
+			KollectyveId::rotate_to_committed(RuntimeOrigin::signed(2), 99, None),
+			Error::<Test>::UnknownIdentity
+		);
+	});
+}
+
+#[test]
+fn rotate_to_committed_rejects_key_in_use() {
+	new_test_ext().execute_with(|| {
+		pre_rotated();
+		// The committed key 2 meanwhile backs another identity.
+		assert_ok!(KollectyveId::register_identity(RuntimeOrigin::root(), 2, commitment(2)));
+		assert_noop!(
+			KollectyveId::rotate_to_committed(RuntimeOrigin::signed(2), 0, None),
+			Error::<Test>::ControllerInUse
+		);
+	});
+}
+
+#[test]
+fn ending_pre_rotation_restores_plain_rotation() {
+	new_test_ext().execute_with(|| {
+		System::set_block_number(1);
+		pre_rotated();
+		assert_ok!(KollectyveId::rotate_to_committed(RuntimeOrigin::signed(2), 0, None));
+		assert!(NextControllerCommitment::<Test>::get(0).is_none());
+		System::assert_last_event(Event::PreRotationEnded { id: 0 }.into());
+		assert_ok!(KollectyveId::rotate_controller(RuntimeOrigin::signed(2), 0, 4));
+		assert_eq!(ControllerOf::<Test>::get(0), Some(4));
 	});
 }
 

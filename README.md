@@ -246,7 +246,7 @@ the pallet's REVM backend implements.
 
 ### Deploy from Remix
 
-1. Add the chain to MetaMask: RPC `http://127.0.0.1:8545`, chain ID `28000`, symbol `KOL`.
+1. Add the chain to MetaMask: RPC `http://127.0.0.1:8545`, chain ID `28000`, symbol `tRS`.
 2. Import the `alith` private key above, so you have a funded account.
 3. Open [remix.ethereum.org](https://remix.ethereum.org), paste `contracts/src/Storage.sol`.
 4. Compile with 0.8.28 (Advanced Configurations → EVM version `cancun`).
